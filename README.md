@@ -77,25 +77,42 @@ To pass arguments to a Python script, use `--` (example: `syslog script.py -- --
 
 ### Install `syslog` into your PATH
 
-This creates a `syslog` symlink in `~/.local/bin`:
+This creates a `syslog` symlink in a common bin directory (usually `~/.local/bin`):
 
 ```bash
 chmod +x bin/syslog bin/install-syslog
 ./bin/install-syslog
 ```
 
+To install into another directory, pass a prefix (then add it to your `PATH`):
+
+```bash
+./bin/install-syslog "$HOME/bin"  # <-- change this
+```
+
+To install system-wide (for all users), use `/usr/local/bin` (may require `sudo`):
+
+```bash
+sudo ./bin/install-syslog /usr/local/bin
+```
+
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-If you already have a `syslog` command on your machine, use another name (example: `syslog-analyze`):
+If you already have a `syslog` command on your machine, install under another name (example: `syslog-analyze`):
 
 ```bash
-mkdir -p ~/.local/bin
-ln -sf "$PWD/bin/syslog" ~/.local/bin/syslog-analyze
-export PATH="$HOME/.local/bin:$PATH"
+./bin/install-syslog "$HOME/.local/bin" syslog-analyze
+export PATH="$HOME/.local/bin:$PATH"  # <-- change this if needed
 syslog-analyze my_script.py
 ```
+
+## Notes / limitations
+
+- This is pattern-based: it recognizes common formats, but it will not catch every possible error line.
+- `syslog my_file.c` / `syslog my_header.h` requires a C compiler (`cc`). On macOS, this is typically `clang` via Xcode Command Line Tools.
+- `journalctl` is Linux-specific. On macOS, analyze a log file, or pipe output from another command.
 
 ## Development
 
@@ -105,6 +122,20 @@ python3 -m unittest
 
 ```bash
 python3 tests/test_ulti.py 2>&1 | ./bin/logforge analyze
+```
+
+## Troubleshooting
+
+- `syslog: command not found`: make sure `~/.local/bin` is in your `PATH` (or run `./bin/syslog ...`).
+- On macOS (zsh), to make the `PATH` change persistent, add the export line to `~/.zshrc` and restart your terminal.
+- `cc: command not found`: the C-check feature needs a C compiler (install one, or use `logforge analyze` on an existing log file).
+- If `syslog` prints `No errors or warnings detected.` when you expected errors, retry after reinstalling the link: `./bin/install-syslog`.
+- If you see Python `Permission denied` errors related to `__pycache__`/`.pyc` when running tests, use: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest`.
+
+## Uninstall
+
+```bash
+rm -f ~/.local/bin/syslog ~/.local/bin/syslog-analyze  # <-- change this
 ```
 
 ## License

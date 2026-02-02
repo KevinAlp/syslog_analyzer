@@ -1,17 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-prefix="${1:-"$HOME/.local/bin"}"
+name="${2:-syslog}"
+
+_choose_prefix() {
+  local candidate
+  for candidate in /usr/local/bin /opt/homebrew/bin "$HOME/.local/bin"; do
+    if [[ -d "$candidate" && -w "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  printf '%s\n' "$HOME/.local/bin"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage: ./bin/install-syslog [PREFIX] [NAME]
+
+Examples:
+  ./bin/install-syslog                 # installs into a sensible default (usually ~/.local/bin)
+  ./bin/install-syslog /usr/local/bin  # system-wide (may require sudo)
+  ./bin/install-syslog ~/.local/bin syslog-analyze
+EOF
+  exit 0
+fi
+
+prefix="${1:-$(_choose_prefix)}"
 mkdir -p "$prefix"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source_path="$script_dir/syslog"
-dest_path="$prefix/syslog"
+dest_path="$prefix/$name"
 
 ln -sf "$source_path" "$dest_path"
 
 echo "Installed: $dest_path"
-if ! command -v syslog >/dev/null 2>&1; then
+if ! command -v "$name" >/dev/null 2>&1; then
   echo "Note: ensure '$prefix' is in your PATH (e.g. export PATH=\"$prefix:\$PATH\")."
 fi
-

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_script_dir="$(
+  python3 -c 'import os,sys; print(os.path.dirname(os.path.realpath(sys.argv[1])))' \
+    "${BASH_SOURCE[0]}"
+)"
 _logforge="$_script_dir/logforge"
 
 if [[ ! -x "$_logforge" ]]; then
