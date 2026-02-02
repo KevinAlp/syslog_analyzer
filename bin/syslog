@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_logforge="$_script_dir/logforge"
+
+if [[ ! -x "$_logforge" ]]; then
+  exec python3 -m logforge "$@"
+fi
+
+if [[ $# -eq 0 ]]; then
+  exec "$_logforge" --help
+fi
+
+case "$1" in
+  run|analyze|-h|--help)
+    exec "$_logforge" "$@"
+    ;;
+esac
+
+to_json=0
+opts=()
+positional=()
+sep_seen=0
+
+for arg in "$@"; do
+  if [[ $sep_seen -eq 0 && "$arg" == "--" ]]; then
+    sep_seen=1
+    positional+=("$arg")
+    continue
+  fi
+  if [[ $sep_seen -eq 0 && "$arg" == "--json" ]]; then
+    to_json=1
+    continue
+  fi
+  positional+=("$arg")
+done
+
+if [[ $to_json -eq 1 ]]; then
+  opts+=(--json)
+fi
+
+if [[ ${#positional[@]} -eq 0 ]]; then
+  exec "$_logforge" --help
+fi
+
+target="${positional[0]}"
+rest=("${positional[@]:1}")
+
+if [[ -f "$target" ]]; then
+  case "${target##*.}" in
+    py)
+      if [[ ${#rest[@]} -gt 0 && "${rest[0]}" == "--" ]]; then
+        exec "$_logforge" run "${opts[@]}" -- python3 "$target" "${rest[@]:1}"
+      fi
+      exec "$_logforge" run "${opts[@]}" -- python3 "$target" "${rest[@]}"
+      ;;
+    c|cc|cpp|cxx)
+      if [[ ${#rest[@]} -gt 0 && "${rest[0]}" == "--" ]]; then
+        rest=("${rest[@]:1}")
+      fi
+      exec "$_logforge" run "${opts[@]}" -- "${CC:-cc}" -fsyntax-only "$target" "${rest[@]}"
+      ;;
+    h|hpp)
+      if [[ ${#rest[@]} -gt 0 && "${rest[0]}" == "--" ]]; then
+        rest=("${rest[@]:1}")
+      fi
+      exec "$_logforge" run "${opts[@]}" -- "${CC:-cc}" -fsyntax-only -x c-header "$target" "${rest[@]}"
+      ;;
+    *)
+      exec "$_logforge" analyze "${opts[@]}" "$target" "${rest[@]}"
+      ;;
+  esac
+fi
+
+exec "$_logforge" run "${opts[@]}" -- "$target" "${rest[@]}"

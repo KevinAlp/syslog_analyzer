@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+prefix="${1:-"$HOME/.local/bin"}"
+mkdir -p "$prefix"
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source_path="$script_dir/syslog"
+dest_path="$prefix/syslog"
+
+ln -sf "$source_path" "$dest_path"
+
+echo "Installed: $dest_path"
+if ! command -v syslog >/dev/null 2>&1; then
+  echo "Note: ensure '$prefix' is in your PATH (e.g. export PATH=\"$prefix:\$PATH\")."
+fi
+
